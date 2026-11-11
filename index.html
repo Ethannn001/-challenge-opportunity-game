@@ -426,6 +426,7 @@
     function chooseChallenge(id) {
       if (submitted) return;
       activeChallenge = id;
+      activeOpportunity = links[id].opp[0] || null;
       updateUI();
     }
     function toggleLink(type, value) {
@@ -670,8 +671,8 @@
     }
     $('continueBtn').addEventListener('click', closeResultsForContinue);
     $('restartBtn').addEventListener('click', () => {
-      challenges.forEach(c => { links[c.id].opp = []; links[c.id].policy = []; });
-      activeChallenge = null; submitted = false;
+      challenges.forEach(c => { links[c.id].opp = []; links[c.id].policy = []; links[c.id].routes = {}; });
+      activeChallenge = null; activeOpportunity = null; submitted = false;
       document.querySelectorAll('.game-card').forEach(el => el.disabled = false);
       $('results').classList.remove('show'); $('results').setAttribute('aria-hidden', 'true');
       $('resultConfetti').innerHTML = ''; $('resultGrid').innerHTML = '';
@@ -679,8 +680,8 @@
       updateUI(); window.scrollTo({top:0,behavior:'smooth'});
     });
     $('resetBtn').addEventListener('click', () => {
-      challenges.forEach(c => { links[c.id].opp = []; links[c.id].policy = []; });
-      activeChallenge = null; submitted = false;
+      challenges.forEach(c => { links[c.id].opp = []; links[c.id].policy = []; links[c.id].routes = {}; });
+      activeChallenge = null; activeOpportunity = null; submitted = false;
       document.querySelectorAll('.game-card').forEach(el => el.disabled = false);
       $('results').classList.remove('show'); $('results').setAttribute('aria-hidden', 'true'); $('resultGrid').innerHTML = ''; $('resultConfetti').innerHTML = ''; $('submitBtn').textContent = '✦ 查看本轮结果';
       updateUI(); window.scrollTo({top:0,behavior:'smooth'});
