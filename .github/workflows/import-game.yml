@@ -1,0 +1,35 @@
+name: Import V3 game files
+
+on:
+  push:
+    paths:
+      - ".github/workflows/import-game.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Download the published V3 game
+        run: |
+          curl --fail --location --retry 3 --retry-delay 2 \
+            "https://glittering-kheer-ca186a.netlify.app/" \
+            --output index.html
+          test -s index.html
+          grep -q "当前国际环境" index.html
+
+      - name: Save the game into the repository
+        run: |
+          touch .nojekyll
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html .nojekyll
+          if ! git diff --cached --quiet; then
+            git commit -m "Add V3 challenge opportunity game"
+            git push
+          fi
