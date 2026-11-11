@@ -63,6 +63,11 @@
     .connection-layer path.line-draw { stroke:#fff1c5; stroke-width:3.2; stroke-dasharray:1; stroke-dashoffset:1; opacity:.9; animation:linkDraw .72s cubic-bezier(.2,.75,.25,1) forwards; filter:drop-shadow(0 0 7px #ffd77d); }
     .connection-layer circle { stroke:#fff4d4; stroke-width:1.5; }
     @keyframes flow { to { stroke-dashoffset:-120; } }
+    .connection-layer { z-index:3; }
+    .connection-layer .connection-visible { fill:none; stroke-width:3; stroke-linecap:round; opacity:.9; filter:drop-shadow(0 0 5px currentColor); }
+    .connection-layer .line-draw { stroke-dasharray:1; stroke-dashoffset:1; animation:linkDraw .72s cubic-bezier(.2,.75,.25,1) forwards; }
+    .opportunity-card.is-route-active { border-color:#fff0b8; box-shadow:0 0 0 2px rgba(255,225,155,.58),0 0 28px rgba(83,185,243,.45); }
+
     @keyframes linkDraw { to { stroke-dashoffset:0; } }
     @keyframes connectPulse { 0%{filter:brightness(1)} 35%{filter:brightness(1.55);box-shadow:0 0 0 3px rgba(255,225,155,.5),0 0 34px rgba(255,210,120,.55)} 100%{filter:brightness(1)} }
     .game-card.is-linking { animation:connectPulse .72s ease-out; }
@@ -180,21 +185,21 @@
       .brand-mark { width:48px; height:48px; flex-basis:48px; font-size:27px; border-radius:14px; }
       .scoreboard { flex-basis:115px; padding:9px; }
       .scoreboard-top { font-size:19px; }
-      .board { grid-template-columns:1fr; gap:12px; padding:11px; }
-      .connection-layer { display:none; }
-      .lane { padding:11px; }
-      .challenge-lane .card-stack { grid-template-columns:repeat(2,minmax(0,1fr)); }
-      .opportunity-lane .card-stack { grid-template-columns:repeat(3,minmax(0,1fr)); }
-      .policy-lane .card-stack { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .board { grid-template-columns:1fr; gap:18px; padding:12px; overflow:visible; }
+      .connection-layer { display:block; z-index:3; }
+      .lane { padding:12px; background:rgba(1,12,25,.36); }
+      .challenge-lane .card-stack { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+      .opportunity-lane .card-stack { grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+      .policy-lane .card-stack { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
       .challenge-card { min-height:116px; align-items:flex-start; flex-direction:column; gap:7px; padding:11px; }
       .challenge-card .card-icon,.opportunity-card .card-icon { width:34px; height:34px; flex-basis:34px; font-size:19px; }
-      .challenge-card .port,.opportunity-card .port,.policy-card .port { display:none; }
+      .challenge-card .port,.opportunity-card .port,.policy-card .port { display:block; }\n      .challenge-card .port { right:50%; top:auto; bottom:-6px; transform:translateX(50%); }\n      .opportunity-card .port { left:50%; top:auto; bottom:-6px; transform:translateX(-50%); }\n      .policy-card .port { left:50%; top:-6px; transform:translateX(-50%); }
       .challenge-card.is-active { transform:translateY(-2px); }
       .opportunity-card { min-height:130px; align-items:flex-start; flex-direction:column; gap:7px; padding:11px; }
       .policy-card { min-height:80px; gap:7px; }
       .policy-card .card-copy { min-width:0; }
       .policy-card .card-icon { width:31px; height:31px; flex-basis:31px; }
-      .game-card .card-name { font-size:12px; }
+      .game-card .card-name { font-size:13px; }
       .game-card .card-meta { font-size:9px; }
       .linked-by { margin-left:0; }
       .lane-head { margin-bottom:9px; }
@@ -218,18 +223,18 @@
       .lane-sub { font-size:9px; }
       .lane-symbol { width:30px; height:30px; font-size:16px; }
       .challenge-lane .card-stack { gap:8px; }
-      .opportunity-lane .card-stack { grid-template-columns:1fr; gap:8px; }
+      .opportunity-lane .card-stack { grid-template-columns:1fr; gap:9px; }
       .policy-lane .card-stack { gap:8px; }
-      .challenge-card { min-height:120px; padding:9px; }
-      .opportunity-card { min-height:76px; flex-direction:row; align-items:center; padding:9px; }
-      .game-card .card-name { font-size:11px; }
+      .challenge-card { min-height:126px; padding:11px; }
+      .opportunity-card { min-height:82px; flex-direction:row; align-items:center; padding:11px; }
+      .game-card .card-name { font-size:12px; }
       .game-card .card-code { font-size:8px; }
       .game-card .card-meta { display:none; }
       .policy-card { min-height:68px; padding:8px; }
       .policy-card .card-icon { width:28px; height:28px; flex-basis:28px; font-size:16px; }
-      .policy-card .card-name { font-size:10px; }
+      .policy-card .card-name { font-size:11px; }
       .linked-by i { width:16px; height:16px; font-size:8px; }
-      .mini-link { font-size:8px; padding:2px 5px; }
+      .mini-link { font-size:9px; padding:3px 6px; }
       .actionbar { padding:11px; }
       .action-note { width:100%; font-size:10px; }
       .actions { width:100%; }
@@ -395,8 +400,8 @@
     };
     const oppNames = Object.fromEntries(opportunities.map(x => [x.id, x.title]));
     const policyNames = Object.fromEntries(policies.map(x => [x.id, x.title]));
-    const links = Object.fromEntries(challenges.map(x => [x.id, { opp: [], policy: [] }]));
-    let activeChallenge = null;
+    const links = Object.fromEntries(challenges.map(x => [x.id, { opp: [], policy: [], routes: {} }]));
+    let activeChallenge = null;\n    let activeOpportunity = null;
     let submitted = false;
     const $ = id => document.getElementById(id);
     const board = $('board');
@@ -426,11 +431,32 @@
     function toggleLink(type, value) {
       if (submitted) return;
       if (!activeChallenge) { showToast('请先选择左侧的一张挑战牌'); return; }
-      const list = links[activeChallenge][type];
-      const index = list.indexOf(value);
-      if (index >= 0) list.splice(index, 1); else list.push(value);
+      const data = links[activeChallenge];
+      if (type === 'opp') {
+        const index = data.opp.indexOf(value);
+        if (index >= 0) {
+          data.opp.splice(index, 1);
+          delete data.routes[value];
+          data.policy = Object.values(data.routes).flat();
+          if (activeOpportunity === value) activeOpportunity = null;
+        } else {
+          data.opp.push(value);
+          data.routes[value] = data.routes[value] || [];
+          activeOpportunity = value;
+        }
+      } else {
+        if (!activeOpportunity || !data.opp.includes(activeOpportunity)) {
+          showToast('请先选择一张机遇卡，再连接对应对策');
+          return;
+        }
+        const route = data.routes[activeOpportunity] || (data.routes[activeOpportunity] = []);
+        const index = route.indexOf(value);
+        if (index >= 0) route.splice(index, 1); else route.push(value);
+        data.policy = [...new Set(Object.values(data.routes).flat())];
+      }
       updateUI();
-      if (index < 0) pulseCards(activeChallenge, type, value);
+      if (type === 'opp') pulseCards(activeChallenge, 'opp', value);
+      else pulseCards(activeOpportunity, 'policy', value);
     }
     function selectedBy(type, value) {
       return challenges.filter(c => links[c.id][type].includes(value)).map(c => c.id);
@@ -465,7 +491,7 @@
         el.setAttribute('aria-pressed', String(active));
         $(`policy-linked-${value}`).innerHTML = selectedBy('policy', value).map(id => `<i>${id}</i>`).join('');
       });
-      $('activeHint').textContent = activeChallenge ? `当前目标：挑战 0${activeChallenge} · 点击卡牌建立连线` : '← 先选择一项挑战';
+      $('activeHint').textContent = !activeChallenge ? '← 先选择一项挑战' : activeOpportunity ? `当前路径：挑战 0${activeChallenge} → 机遇 ${activeOpportunity.toUpperCase()} → 选择对策` : `当前目标：挑战 0${activeChallenge} · 先选择一张机遇卡`;
       const totalLinks = challenges.reduce((n,id) => n + links[id.id].opp.length + links[id.id].policy.length, 0);
       const completed = challenges.filter(c => links[c.id].opp.length && links[c.id].policy.length).length;
       $('selectedCount').textContent = totalLinks;
@@ -479,7 +505,7 @@
       const current = activeChallenge ? links[activeChallenge] : null;
       const items = current ? [
         ...current.opp.map(id => `<span class="preview-chip">🌟 ${oppNames[id]}</span>`),
-        ...current.policy.map(id => `<span class="preview-chip">🛡️ ${policyNames[id]}</span>`)
+        ...Object.entries(current.routes).flatMap(([opp, ids]) => ids.map(id => `<span class="preview-chip">${opp.toUpperCase()} → 🛡️ ${policyNames[id]}</span>`))
       ] : [];
       $('selectionPreview').innerHTML = `<strong>当前连线 · ${title}</strong>${items.length ? items.join('') : '<span class="preview-empty">选择机遇牌和对策牌，建立你的组合</span>'}`;
     }
@@ -495,47 +521,52 @@
     }
     function drawConnections() {
       const svg = $('connectionLayer');
-      const width = board.clientWidth, height = board.clientHeight;
+      const width = board.clientWidth, height = board.scrollHeight;
       svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      svg.setAttribute('height', height);
       svg.innerHTML = '';
-      if (window.matchMedia('(max-width: 850px)').matches) return;
       const rect = board.getBoundingClientRect();
       const ns = 'http://www.w3.org/2000/svg';
+      const mobile = window.matchMedia('(max-width: 850px)').matches;
+      function center(el) {
+        const r = el.getBoundingClientRect();
+        return { x: r.left - rect.left + r.width/2, y: r.top - rect.top + r.height/2, w:r.width, h:r.height };
+      }
+      function addPath(fromEl, toEl, color, id, opacity) {
+        if (!fromEl || !toEl) return;
+        const a=center(fromEl), b=center(toEl);
+        let sx,sy,tx,ty,d;
+        if (mobile) {
+          const down = b.y >= a.y;
+          sx=a.x; sy=a.y+(down?a.h/2:-a.h/2);
+          tx=b.x; ty=b.y+(down?-b.h/2:b.h/2);
+          const bend=Math.max(24,Math.abs(ty-sy)*.38);
+          d=`M ${sx} ${sy} C ${sx} ${sy+(down?bend:-bend)}, ${tx} ${ty-(down?bend:-bend)}, ${tx} ${ty}`;
+        } else {
+          const right=b.x>=a.x;
+          sx=a.x+(right?a.w/2:-a.w/2); sy=a.y;
+          tx=b.x+(right?-b.w/2:b.w/2); ty=b.y;
+          const bend=Math.max(34,Math.abs(tx-sx)*.4);
+          d=`M ${sx} ${sy} C ${sx+(right?bend:-bend)} ${sy}, ${tx-(right?bend:-bend)} ${ty}, ${tx} ${ty}`;
+        }
+        const path=document.createElementNS(ns,'path');
+        path.setAttribute('id',id); path.setAttribute('d',d);
+        path.setAttribute('stroke',color); path.setAttribute('opacity',opacity);
+        path.setAttribute('class','connection-visible');
+        svg.appendChild(path);
+        const glow=document.createElementNS(ns,'path');
+        glow.setAttribute('d',d); glow.setAttribute('pathLength','1');
+        glow.setAttribute('class','line-draw'); svg.appendChild(glow);
+      }
       challenges.forEach(c => {
-        const source = board.querySelector(`[data-node="challenge-${c.id}"]`);
-        if (!source) return;
-        const sr = source.getBoundingClientRect();
-        const sx = sr.right - rect.left - 1, sy = sr.top - rect.top + sr.height / 2;
-        ['opp','policy'].forEach(type => {
-          links[c.id][type].forEach(value => {
-            const target = board.querySelector(`[data-node="${type === 'opp' ? 'opportunity' : 'policy'}-${value}"]`);
-            if (!target) return;
-            const tr = target.getBoundingClientRect();
-            const tx = tr.left - rect.left + 1, ty = tr.top - rect.top + tr.height / 2;
-            const bend = Math.max(42, (tx - sx) * .42);
-            const d = `M ${sx} ${sy} C ${sx+bend} ${sy}, ${tx-bend} ${ty}, ${tx} ${ty}`;
-            const pathId = `path-${c.id}-${type}-${value}`;
-            const path = document.createElementNS(ns, 'path');
-            path.setAttribute('id', pathId);
-            path.setAttribute('d', d);
-            path.setAttribute('stroke', c.color);
-            path.setAttribute('opacity', c.id === activeChallenge ? '.95' : '.48');
-            svg.appendChild(path);
-            const reveal = document.createElementNS(ns, 'path');
-            reveal.setAttribute('d', d);
-            reveal.setAttribute('pathLength', '1');
-            reveal.setAttribute('class', 'line-draw');
-            svg.appendChild(reveal);
-            const dot = document.createElementNS(ns, 'circle');
-            dot.setAttribute('r', '4');
-            dot.setAttribute('fill', '#fff7db');
-            dot.setAttribute('filter', 'drop-shadow(0 0 5px #ffe0a0)');
-            const motion = document.createElementNS(ns, 'animateMotion');
-            motion.setAttribute('dur', '1.8s');
-            motion.setAttribute('repeatCount', 'indefinite');
-            const mpath = document.createElementNS(ns, 'mpath');
-            mpath.setAttribute('href', `#${pathId}`);
-            motion.appendChild(mpath); dot.appendChild(motion); svg.appendChild(dot);
+        const data=links[c.id];
+        const challenge=board.querySelector(`[data-node="challenge-${c.id}"]`);
+        data.opp.forEach(opp => {
+          const opportunity=board.querySelector(`[data-node="opportunity-${opp}"]`);
+          addPath(challenge,opportunity,c.color,`path-${c.id}-opp-${opp}`,c.id===activeChallenge?'.98':'.58');
+          (data.routes[opp]||[]).forEach(policy => {
+            const target=board.querySelector(`[data-node="policy-${policy}"]`);
+            addPath(opportunity,target,'#ffd27b',`path-${c.id}-${opp}-policy-${policy}`,c.id===activeChallenge?'.98':'.58');
           });
         });
       });
