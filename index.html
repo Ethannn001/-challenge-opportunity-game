@@ -566,7 +566,7 @@
             const cards=policyEls.map(point).sort((x,y)=>x.cy-y.cy);
             const trunkX=Math.min(b.right+25, (b.right + Math.min(...cards.map(p=>p.left)))/2);
             const startX=b.right, startY=b.cy;
-            const topY=cards[0].cy, bottomY=cards[cards.length-1].cy;
+            const topY=Math.min(startY,cards[0].cy), bottomY=Math.max(startY,cards[cards.length-1].cy);
             // 机遇出口到分支主干
             add(`M ${startX} ${startY} C ${trunkX-9} ${startY}, ${trunkX} ${startY}, ${trunkX} ${startY}`, '#ffd27b',active?1:.55,4);
             // 共用竖向主干
