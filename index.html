@@ -64,7 +64,7 @@
     .connection-layer circle { stroke:#fff4d4; stroke-width:1.5; }
     @keyframes flow { to { stroke-dashoffset:-120; } }
     .connection-layer { z-index:3; }
-    .connection-layer .connection-visible { fill:none; stroke-width:3; stroke-linecap:round; opacity:.9; filter:drop-shadow(0 0 5px currentColor); }
+    .connection-layer .connection-visible { fill:none; stroke-width:4; stroke-linecap:round; opacity:.95; filter:drop-shadow(0 0 4px currentColor); }
     .connection-layer .line-draw { stroke-dasharray:1; stroke-dashoffset:1; animation:linkDraw .72s cubic-bezier(.2,.75,.25,1) forwards; }
     .opportunity-card.is-route-active { border-color:#fff0b8; box-shadow:0 0 0 2px rgba(255,225,155,.58),0 0 28px rgba(83,185,243,.45); }
 
@@ -524,51 +524,78 @@
       const svg = $('connectionLayer');
       const width = board.clientWidth, height = board.scrollHeight;
       svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      svg.setAttribute('width', width);
       svg.setAttribute('height', height);
       svg.innerHTML = '';
-      const rect = board.getBoundingClientRect();
+      const boardRect = board.getBoundingClientRect();
       const ns = 'http://www.w3.org/2000/svg';
       const mobile = window.matchMedia('(max-width: 850px)').matches;
-      function center(el) {
+      const point = el => {
         const r = el.getBoundingClientRect();
-        return { x: r.left - rect.left + r.width/2, y: r.top - rect.top + r.height/2, w:r.width, h:r.height };
-      }
-      function addPath(fromEl, toEl, color, id, opacity) {
-        if (!fromEl || !toEl) return;
-        const a=center(fromEl), b=center(toEl);
-        let sx,sy,tx,ty,d;
-        if (mobile) {
-          const down = b.y >= a.y;
-          sx=a.x; sy=a.y+(down?a.h/2:-a.h/2);
-          tx=b.x; ty=b.y+(down?-b.h/2:b.h/2);
-          const bend=Math.max(24,Math.abs(ty-sy)*.38);
-          d=`M ${sx} ${sy} C ${sx} ${sy+(down?bend:-bend)}, ${tx} ${ty-(down?bend:-bend)}, ${tx} ${ty}`;
-        } else {
-          const right=b.x>=a.x;
-          sx=a.x+(right?a.w/2:-a.w/2); sy=a.y;
-          tx=b.x+(right?-b.w/2:b.w/2); ty=b.y;
-          const bend=Math.max(34,Math.abs(tx-sx)*.4);
-          d=`M ${sx} ${sy} C ${sx+(right?bend:-bend)} ${sy}, ${tx-(right?bend:-bend)} ${ty}, ${tx} ${ty}`;
-        }
-        const path=document.createElementNS(ns,'path');
-        path.setAttribute('id',id); path.setAttribute('d',d);
-        path.setAttribute('stroke',color); path.setAttribute('opacity',opacity);
-        path.setAttribute('class','connection-visible');
-        svg.appendChild(path);
-        const glow=document.createElementNS(ns,'path');
-        glow.setAttribute('d',d); glow.setAttribute('pathLength','1');
-        glow.setAttribute('class','line-draw'); svg.appendChild(glow);
-      }
+        return {left:r.left-boardRect.left,right:r.right-boardRect.left,top:r.top-boardRect.top,bottom:r.bottom-boardRect.top,cx:r.left-boardRect.left+r.width/2,cy:r.top-boardRect.top+r.height/2};
+      };
+      const add = (d, color, opacity=1, width=4) => {
+        const p=document.createElementNS(ns,'path');
+        p.setAttribute('d',d); p.setAttribute('fill','none');
+        p.setAttribute('stroke',color); p.setAttribute('stroke-width',width);
+        p.setAttribute('stroke-linecap','round'); p.setAttribute('stroke-linejoin','round');
+        p.setAttribute('opacity',opacity);
+        p.style.filter=`drop-shadow(0 0 3px ${color})`;
+        svg.appendChild(p);
+      };
       challenges.forEach(c => {
         const data=links[c.id];
         const challenge=board.querySelector(`[data-node="challenge-${c.id}"]`);
+        if (!challenge) return;
+        const a=point(challenge);
         data.opp.forEach(opp => {
           const opportunity=board.querySelector(`[data-node="opportunity-${opp}"]`);
-          addPath(challenge,opportunity,c.color,`path-${c.id}-opp-${opp}`,c.id===activeChallenge?'.98':'.58');
-          (data.routes[opp]||[]).forEach(policy => {
-            const target=board.querySelector(`[data-node="policy-${policy}"]`);
-            addPath(opportunity,target,'#ffd27b',`path-${c.id}-${opp}-policy-${policy}`,c.id===activeChallenge?'.98':'.58');
-          });
+          if (!opportunity) return;
+          const b=point(opportunity);
+          const active=c.id===activeChallenge;
+          const color=active?c.color:'#9db5c8';
+          if (!mobile) {
+            // 第一段：挑战卡片右侧到机遇卡片左侧，保持水平主线
+            const x1=a.right, y1=a.cy, x2=b.left, y2=b.cy;
+            const mid=(x1+x2)/2;
+            add(`M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`,color,active?1:.55,4);
+            // 第二段：机遇右侧引出共享主干，再分叉连接各对策
+            const policyIds=data.routes[opp]||[];
+            const policyEls=policyIds.map(id=>board.querySelector(`[data-node="policy-${id}"]`)).filter(Boolean);
+            if (!policyEls.length) return;
+            const cards=policyEls.map(point).sort((x,y)=>x.cy-y.cy);
+            const trunkX=Math.min(b.right+25, (b.right + Math.min(...cards.map(p=>p.left)))/2);
+            const startX=b.right, startY=b.cy;
+            const topY=cards[0].cy, bottomY=cards[cards.length-1].cy;
+            // 机遇出口到分支主干
+            add(`M ${startX} ${startY} C ${trunkX-9} ${startY}, ${trunkX} ${startY}, ${trunkX} ${startY}`, '#ffd27b',active?1:.55,4);
+            // 共用竖向主干
+            if (cards.length>1) add(`M ${trunkX} ${topY} L ${trunkX} ${bottomY}`,'#ffd27b',active?1:.55,4);
+            // 各对策分支从主干水平引出
+            policyEls.forEach((el,index)=>{
+              const p=point(el), y=p.cy, endX=p.left;
+              const bend=Math.max(7,(endX-trunkX)*.24);
+              add(`M ${trunkX} ${y} C ${trunkX+bend} ${y}, ${endX-bend} ${y}, ${endX} ${y}`,'#ffd27b',active?1:.55,4);
+            });
+          } else {
+            // 手机端卡片纵向排列，连接线沿卡片中心轴弯曲连接
+            const x1=a.cx, y1=a.bottom, x2=b.cx, y2=b.top;
+            const gap=Math.max(18,(y2-y1)*.38);
+            add(`M ${x1} ${y1} C ${x1} ${y1+gap}, ${x2} ${y2-gap}, ${x2} ${y2}`,color,active?1:.55,3.5);
+            const policyIds=data.routes[opp]||[];
+            const policyEls=policyIds.map(id=>board.querySelector(`[data-node="policy-${id}"]`)).filter(Boolean);
+            if (!policyEls.length) return;
+            const centers=policyEls.map(el=>({el,p:point(el)})).sort((x,y)=>x.p.cy-y.p.cy);
+            const trunkY=Math.min(...centers.map(x=>x.p.top))-13;
+            const trunkX=b.cx;
+            add(`M ${trunkX} ${b.bottom} C ${trunkX} ${b.bottom+8}, ${trunkX} ${trunkY-8}, ${trunkX} ${trunkY}`,'#ffd27b',active?1:.55,3.5);
+            const xs=centers.map(x=>x.p.cx);
+            if (Math.max(...xs)-Math.min(...xs)>4) add(`M ${Math.min(...xs)} ${trunkY} L ${Math.max(...xs)} ${trunkY}`,'#ffd27b',active?1:.55,3.5);
+            centers.forEach(({p})=>{
+              const d=`M ${p.cx} ${trunkY} C ${p.cx} ${trunkY+8}, ${p.cx} ${p.top-8}, ${p.cx} ${p.top}`;
+              add(d,'#ffd27b',active?1:.55,3.5);
+            });
+          }
         });
       });
     }
